@@ -32,7 +32,7 @@
     allocate(points(npoints))
     
     do i = 1, npoints
-        read(fid, *) dummy, points(i).x, points(i).y
+        read(fid, *) dummy, points(i)%x, points(i)%y
     end do
     end subroutine read_polyfile
     
@@ -51,7 +51,7 @@
     end if
     
     do i = 1, n
-        write(*,'(f8.3,2X,f8.3)') points(i).x, points(i).y 
+        write(*,'(f8.3,2X,f8.3)') points(i)%x, points(i)%y 
     end do
     
     write(*,'(A)') '---------------------'
@@ -67,12 +67,12 @@
     
     n = size(points, 1)
     
-    poly.nsides = n
-    allocate(poly.edges(n))
+    poly%nsides = n
+    allocate(poly%edges(n))
     
     do i = 1, n
-        poly.edges(i).start = points(i)
-        poly.edges(i).finish = points(mod(i, n) + 1)
+        poly%edges(i)%start = points(i)
+        poly%edges(i)%finish = points(mod(i, n) + 1)
     end do
     
     end subroutine create_polygon_from_vertices
@@ -89,9 +89,9 @@
         write(*,'(A)') trim(adjustl(message))
     end if
     
-    do i = 1, poly.nsides
-        write(*,'(i0,a,f8.3,a,f8.3,a,f8.3,a,f8.3,a)') i, ' : (', poly.edges(i).start.x, ', ', poly.edges(i).start.y, ')  -->  (', poly.edges(i).finish.x, ', ',  &
-            poly.edges(i).finish.y, ')'
+    do i = 1, poly%nsides
+        write(*,'(i0,a,f8.3,a,f8.3,a,f8.3,a,f8.3,a)') i, ' : (', poly%edges(i)%start%x, ', ', poly%edges(i)%start%y, ')  -->  (',&
+             poly%edges(i)%finish%x, ', ', poly%edges(i)%finish%y, ')'
     end do
     
     write(*,'(A)') '---------------------'
