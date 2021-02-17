@@ -1,22 +1,9 @@
 
     module polygon_reader
+    use polygon_data
+    use polygon_writer
     
     implicit none
-    
-    type Vertex
-        real    :: x
-        real    :: y
-    end type Vertex
-    
-    type Edge
-        type(Vertex) :: start
-        type(Vertex) :: finish
-    end type Edge
-    
-    type Polygon
-        integer                 :: nsides
-        type(Edge), allocatable :: edges(:)
-    end type Polygon
     
     contains
     
@@ -35,27 +22,6 @@
         read(fid, *) dummy, points(i)%x, points(i)%y
     end do
     end subroutine read_polyfile
-    
-    !*********************************************************
-    subroutine print_list_of_points(points, message)
-    type(Vertex), allocatable, intent(in)       :: points(:)
-    character(*), intent(in), optional          :: message
-    
-    integer                     :: i, n
-    
-    n = size(points, 1)
-    
-    write(*,'(A)') '---------------------'
-    if (present(message)) then
-        write(*,'(A)') trim(adjustl(message))
-    end if
-    
-    do i = 1, n
-        write(*,'(f8.3,2X,f8.3)') points(i)%x, points(i)%y 
-    end do
-    
-    write(*,'(A)') '---------------------'
-    end subroutine print_list_of_points
     
     !*********************************************************
     subroutine create_polygon_from_vertices(points, poly)
@@ -78,24 +44,38 @@
     end subroutine create_polygon_from_vertices
     
     !*********************************************************
-    subroutine print_polygon(poly, message)
-    type(Polygon), intent(in)               :: poly
-    character(*), intent(in), optional      :: message
+    subroutine create_polygon(fname, poly, description)
+    character(*), intent(in)            :: fname
+    type(Polygon), intent(out)          :: poly
+    character(*), intent(in), optional  :: description
     
-    integer         :: i
+    integer                 :: fid
+    type(Vertex), allocatable       :: ppoints(:)
     
-    write(*,'(A)') '---------------------'
-    if (present(message)) then
-        write(*,'(A)') trim(adjustl(message))
+    
+    open(newunit=fid, file=fname)
+    
+    ! read polygons
+    call read_polyfile(fid, ppoints)
+#ifdef _DEBUG    
+    if (present(description)) then
+        call print_list_of_points(ppoints, description)
+    else
+        call print_list_of_points(ppoints, fname)
     end if
+#endif
     
-    do i = 1, poly%nsides
-        write(*,'(i0,a,f8.3,a,f8.3,a,f8.3,a,f8.3,a)') i, ' : (', poly%edges(i)%start%x, ', ', poly%edges(i)%start%y, ')  -->  (',&
-             poly%edges(i)%finish%x, ', ', poly%edges(i)%finish%y, ')'
-    end do
+    call create_polygon_from_vertices(ppoints, poly)
+#ifdef _DEBUG
+    if (present(description)) then
+        call print_polygon(poly, description)
+    else
+        call print_polygon(poly, fname)
+    end if
+#endif    
     
-    write(*,'(A)') '---------------------'
-    end subroutine print_polygon
+    close(fid)
+    end subroutine create_polygon
     
     end module polygon_reader
     

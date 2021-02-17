@@ -1,16 +1,17 @@
 
 
     program clip_polygon_driver
-    use polygon_reader
+    use polygon_data, only  : Polygon
+    use polygon_reader, only    : create_polygon
+    use polygon_clipper, only   : clipper
+    use polygon_writer, only    : save_polygon_to_file
 
     implicit none
 
     integer         :: nargs
-    integer         :: fid_clipping, fid_original, fid_result
     character(512)  :: filename_clipping, filename_original, filename_result
     
-    type(Vertex), allocatable       :: clipper_points(:), original_points(:), result_points(:)
-    type(Polygon)                   :: clipper, original, resulting
+    type(Polygon)   :: clipper_poly, original_poly, resulting_poly
 
     filename_clipping = ' '
     filename_original = ' '
@@ -30,42 +31,20 @@
         !filename_original = '../data/concave_polygon.txt'
         filename_result = '../data/clipped_polygon.txt'
     end if
-
-    open(newunit=fid_clipping, file=trim(adjustl(filename_clipping)))
-    open(newunit=fid_original, file=trim(adjustl(filename_original)))
-    open(newunit=fid_result, file=trim(adjustl(filename_result)))
-
-    ! read polygons
-    call read_polyfile(fid_clipping, clipper_points)
-    call read_polyfile(fid_original, original_points)
-    call read_polyfile(fid_result, result_points)
     
-#ifdef _DEBUG
-    call print_list_of_points(clipper_points, 'clipper')
-    call print_list_of_points(original_points, 'original')
-    call print_list_of_points(result_points, 'result')
-#endif    
+    ! create polygons
+    call create_polygon(trim(adjustl(filename_clipping)), clipper_poly, 'clipper polygon')
+    call create_polygon(trim(adjustl(filename_original)), original_poly, 'original polygon')
     
-    call create_polygon_from_vertices(clipper_points, clipper)
-    call create_polygon_from_vertices(original_points, original)
-    call create_polygon_from_vertices(result_points, resulting)
+    ! create a copy of the original polygon
+    resulting_poly = original_poly
     
-#ifdef _DEBUG
-    call print_polygon(clipper, 'clipper')
-    call print_polygon(original, 'original')
-    call print_polygon(resulting, 'result')
-#endif 
-
     ! clip it
+    call clipper(clipper_poly, resulting_poly)
 
     ! write results
+    call save_polygon_to_file(filename_result, resulting_poly)
     
-    
-
-    close(fid_clipping)
-    close(fid_original)
-    close(fid_result)
-
     write(*,*) ' All done.'
     write(*,*) ' Goodbye'
     
