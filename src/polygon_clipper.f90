@@ -13,6 +13,7 @@
 
     !*********************************************************
     subroutine clipper(clipping_poly, clipped_poly)
+    ! https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
     type(Polygon), intent(in)       :: clipping_poly
     type(Polygon), intent(inout)    :: clipped_poly
 
@@ -81,6 +82,7 @@
 
     !*********************************************************
     function find_intersection(p1, p2, clip_edge) result(int_point)
+    ! https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
     type(Vertex), intent(in)            :: p1, p2
     type(Edge), intent(in)              :: clip_edge
     type(Vertex)                        :: int_point
