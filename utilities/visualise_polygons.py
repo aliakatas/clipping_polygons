@@ -25,7 +25,7 @@ def read_polygon_file(fname):
 
     return points
 
-def plot_polygon(ax, points, name, color='k'):
+def plot_polygon(ax, points, name, color='y'):
     '''
     Draws the polygon from its points on ax axis.
     '''
@@ -42,25 +42,26 @@ def plot_polygon(ax, points, name, color='k'):
     
 
 if __name__ == '__main__':
-    clipping_polygon = './data/clipping_polygon.txt'
-    clipping_points = read_polygon_file(clipping_polygon)
-
-    # original_polygon = './data/convex_polygon.txt'
-    original_polygon = './data/concave_polygon.txt'
+    clipping_polygon = '../data/clipping_polygon.txt'
+    original_polygon = '../data/convex_polygon.txt'
+    clipped_polygon = '../data/convex_polygon_clipped.txt'
+    # original_polygon = '../data/concave_polygon.txt'
+    # clipped_polygon = '../data/concave_polygon_clipped.txt'
+    
     original_points = read_polygon_file(original_polygon)
-
-    clipped_polygon = './data/clipped_polygon.txt'
+    clipping_points = read_polygon_file(clipping_polygon)
     clipped_points = read_polygon_file(clipped_polygon)
     
     # Create the plot
     plt.figure(figsize=(8,8))
     ax = plt.gca()
 
-    plot_polygon(ax, clipping_points, 'clipping', color='r')
-    plot_polygon(ax, clipped_points, 'clipped', color = 'g')
     plot_polygon(ax, original_points, 'original')
-
+    plot_polygon(ax, clipping_points, 'clipping', color='m')
+    plot_polygon(ax, clipped_points, 'clipped', color = 'g')
+    
     plt.legend()
+    plt.grid()
     plt.show()
 
 
