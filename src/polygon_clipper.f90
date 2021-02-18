@@ -2,10 +2,12 @@
     module polygon_clipper
     use polygon_data
     use polygon_writer
+    use polygon_reader, only : create_polygon_from_vertices
 
     implicit none
 
     real, parameter         :: NODATA = -99999.9
+    real, parameter         :: SMALL_REAL = 100. * epsilon(1.)
 
     contains
 
@@ -15,9 +17,13 @@
     type(Polygon), intent(inout)    :: clipped_poly
 
     integer             :: clipping_size, clipped_size, nverts
-    integer             :: iedge, ivert, ip1
+    integer             :: iedge, ivert
     type(Vertex), allocatable   :: vertices(:), vertices_out(:)
     type(Vertex)        :: current_point, previous_point, intersecting_point
+    
+#ifdef _DEBUG
+    character(50)       :: msg
+#endif    
 
 #ifdef _DEBUG
     call print_polygon(clipped_poly, 'before clipping')
@@ -35,15 +41,18 @@
     allocate(vertices_out, source = vertices)
 
     do iedge = 1, clipping_size
-        vertices = vertices_out
+        deallocate(vertices)
+        allocate(vertices, source = vertices_out)
+        
+#ifdef _DEBUG
+        write(msg, '(a,x,i0)') 'Iteration', iedge
+        call print_list_of_points(vertices_out, msg)
+#endif        
         deallocate(vertices_out)
         nverts = size(vertices, 1)
 
         do ivert = 1, nverts
-            ip1 = ivert + 1
-            if (ip1 > nverts) ip1 = 1
-
-            current_point = vertices(ip1)
+            current_point = vertices(mod(ivert, nverts) + 1)
             previous_point = vertices(ivert)
 
             intersecting_point = find_intersection(previous_point, current_point, clipping_poly%edges(iedge))
@@ -63,7 +72,11 @@
             end if
         end do
     end do
-
+    
+    call create_polygon_from_vertices(vertices_out, clipped_poly)
+#ifdef _DEBUG
+    call print_polygon(clipped_poly, 'after clipping')
+#endif
     end subroutine clipper
 
     !*********************************************************
@@ -71,25 +84,31 @@
     type(Vertex), intent(in)            :: p1, p2
     type(Edge), intent(in)              :: clip_edge
     type(Vertex)                        :: int_point
-
-    real                :: s1_x, s1_y, s2_x, s2_y
-    real                :: s, t
-
-    s1_x = p2%x - p1%x
-    s1_y = p2%y - p1%y
-
-    s2_x = clip_edge%finish%x - clip_edge%start%x
-    s2_y = clip_edge%finish%y - clip_edge%start%y;
-
-    s = (-s1_y * (p1%x - clip_edge%finish%x) + s1_x * (p1%y - clip_edge%finish%y)) / (-s2_x * s1_y + s1_x * s2_y);
-    t = ( s2_x * (p1%y - clip_edge%finish%y) - s2_y * (p1%x - clip_edge%finish%x)) / (-s2_x * s1_y + s1_x * s2_y);
-
-    if (s >= 0. .and. s <= 1. .and. t >= 0. .and. t <= 1.) then
-        int_point%x = p1%x + (t * s1_x)
-        int_point%y = p1%y + (t * s1_y)
-        return
+    
+    real                :: crossproduct 
+    real                :: t, u
+    real                :: x12, y12, x34, y34
+    
+    crossproduct = (p2%x - p1%x) * (clip_edge%finish%y - clip_edge%start%y) - (p2%y - p1%y) * (clip_edge%finish%x - clip_edge%start%x)
+    
+    if (abs(crossproduct) > SMALL_REAL) then
+        x12 = p1%x - p2%x
+        y12 = p1%y - p2%y
+        x34 = clip_edge%start%x - clip_edge%finish%x
+        y34 = clip_edge%start%y - clip_edge%finish%y
+            
+        t = ((p1%x - clip_edge%start%x) * y34 - (p1%y - clip_edge%start%y) * x34) / (x12 * y34 - y12 * x34)
+        u = ((-x12) * (p1%y - clip_edge%start%y) - (-y12) * (p1%x - clip_edge%start%x)) / (x12 * y34 - y12 * x34)
+        
+        ! No need to check it's falling in both line segments, original edge will do
+        if (t >= 0.0 .and. t <= 1.0) then
+            int_point%x = p1%x + t * (p2%x - p1%x)
+            int_point%y = p1%y + t * (p2%y - p1%y)
+            return
+        end if
     end if
-
+    
+    ! Handle parallel line segments AND point of intersection outside of both line segments
     int_point%x = NODATA
     int_point%y = NODATA
     end function find_intersection
@@ -123,7 +142,8 @@
     logical                         :: ok
 
     real                :: crossproduct
-
+    
+    ! Assumes counter-clockwise definition of points
     crossproduct = (clip_edge%finish%x - clip_edge%start%x) * (vert%y - clip_edge%start%y) - (clip_edge%finish%y - clip_edge%start%y) * (vert%x - clip_edge%start%x)
     ok = crossproduct >= 0.0
     end function vertex_inside_polygon
